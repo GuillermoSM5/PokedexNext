@@ -1,28 +1,24 @@
-import { FC, useEffect, useState } from 'react';
-import { Button, Card, Container, Grid, Text, Image } from '@nextui-org/react';
-import { GetStaticPaths, GetStaticProps } from 'next';
-import { pokeApi } from '../../api';
+import React, { FC, useState } from 'react';
 import { Layout } from '../../components/Layouts';
-import { PokemonFull } from '../../Interfaces';
-import { LocalFavorite } from '../../utils/';
-import localFavorites from '../../utils/localFavorites';
-import { getDataPokemon } from '../../utils/getDataPokemon';
+import {
+	PokemonFull,
+	PokemonListResponse,
+	SmallPokemon,
+} from '../../Interfaces';
+import { Button, Card, Container, Grid, Text, Image } from '@nextui-org/react';
+import { getDataPokemon, LocalFavorite } from '../../utils/';
+import { GetStaticPaths } from 'next';
+import { pokeApi } from '../../api';
 
 interface Props {
 	pokemon: PokemonFull;
 }
 
-const PokemonPage: FC<Props> = ({ pokemon }) => {
+const PokemonName: FC<Props> = ({ pokemon }) => {
 	const [isFavorite, setIsFavorite] = useState(false);
-
-	useEffect(() => {
-		// setIsFavorite(localFavorites.existPokemonInFavorites(pokemon.id));
-	}, []);
-
 	const onToggleFvorite = () => {
 		LocalFavorite.toogleFavorite(pokemon.id);
 	};
-
 	return (
 		<Layout title={pokemon.name}>
 			<Grid.Container css={{ marginTop: '5px' }} gap={2}>
@@ -96,9 +92,13 @@ const PokemonPage: FC<Props> = ({ pokemon }) => {
 // You should use getStaticPaths if you’re statically pre-rendering pages that use dynamic routes
 
 export const getStaticPaths: GetStaticPaths = async (ctx) => {
-	const pokemons151 = [...Array(151)].map((value, index) => `${index + 1}`);
+	const { data } = await pokeApi.get<PokemonListResponse>('/pokemon?limit=151');
+	const allPokemons: SmallPokemon[] = data.results;
+
+	// const pokemons151 = [...Array(151)].map((value, index) => `${index + 1}`);
+
 	return {
-		paths: pokemons151.map((id) => ({ params: { id } })),
+		paths: allPokemons.map(({ name, url }) => ({ params: { name } })),
 		fallback: false,
 	};
 };
@@ -108,15 +108,16 @@ export const getStaticPaths: GetStaticPaths = async (ctx) => {
 //- The data comes from a headless CMS.
 //- The data can be publicly cached (not user-specific).
 //- The page must be pre-rendered (for SEO) and be very fast — getStaticProps generates HTML and JSON files, both of which can be cached by a CDN for performance.
+import { GetStaticProps } from 'next';
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-	const { id } = params as { id: string };
+	const { name } = params as { name: string };
 
 	return {
 		props: {
-			pokemon: await getDataPokemon(id),
+			pokemon: await getDataPokemon(name),
 		},
 	};
 };
 
-export default PokemonPage;
+export default PokemonName;
